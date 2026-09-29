@@ -259,6 +259,7 @@ add_library(OurCoreLib OBJECT
         src/savefile.c
         src/score.c
         src/score-util.c
+        src/snd-win.c
         src/sound-core.c
         src/source.c
         src/store.c
@@ -382,6 +383,9 @@ add_library(OurCoreLib OBJECT
 set_target_properties(OurCoreLib PROPERTIES C_STANDARD 99)
 set(ANGBAND_CORE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(ANGBAND_CORE_LINK_LIBRARIES "")
+if(SUPPORT_WINDOWS_FRONTEND)
+    list(APPEND ANGBAND_CORE_LINK_LIBRARIES winmm)
+endif()
 
 if(SUPPORT_BORG)
     target_include_directories(OurCoreLib PRIVATE

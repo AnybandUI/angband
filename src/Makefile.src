@@ -249,6 +249,7 @@ ANGFILES0 = \
 	save-charoutput.o \
 	score.o \
 	score-util.o \
+	snd-win.o \
 	sound-core.o \
 	source.o \
 	store.o \

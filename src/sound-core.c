@@ -391,6 +391,7 @@ errr init_sound(const char *soundstr, int argc, char **argv)
  */
 void close_sound(void)
 {
+	event_remove_handler(EVENT_SOUND, play_sound, NULL);
 	if (0 == next_sound_id) return;	/* Never opened */
 
 	/*
@@ -409,6 +410,7 @@ void close_sound(void)
 	mem_free(sounds);
 	sounds = NULL;
 	next_sound_id = 0;
+	memset(message_sounds, 0, sizeof(message_sounds));
 
 	/* Close the platform's sound module */
 	if (hooks.close_audio_hook) {
