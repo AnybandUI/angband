@@ -64,8 +64,6 @@ typedef enum game_event_type
 	EVENT_MONSTERTARGET,
 	EVENT_OBJECTTARGET,
 	EVENT_MESSAGE,
-	EVENT_SOUND_CUE,       /* Unfiltered sound; message.type is MSG_*. */
-	EVENT_TARGET_SELECTED, /* Successful explicit selection, not tracking. */
 	EVENT_SOUND,
 	EVENT_BELL,
 	EVENT_USE_STORE,

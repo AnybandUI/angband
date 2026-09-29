@@ -7,7 +7,7 @@ adapter's reviewed engine patch series, based on upstream 4.2-release commit
 
 The embedded backend has been retired. JSON, manifests, presentation policy and
 engine packaging belong to the external adapter. The UI still communicates
-with one engine process using the unchanged full-v1 protocol.
+with one engine process using Anyband Protocol (`anyband-protocol`).
 
 ## Build
 
