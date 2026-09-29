@@ -77,7 +77,10 @@ static bool open_audio_sdl(void)
 
 	/* Try to open the audio */
 	if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, 4096) < 0) {
-		plog_fmt("SDL: Couldn't open mixer: %s", SDL_GetError());
+		plog_fmt("SDL: Couldn't open mixer: %s", Mix_GetError());
+#ifdef SOUND_SDL2
+		Mix_Quit();
+#endif
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		return false;
 	}
@@ -243,6 +246,9 @@ static bool close_audio_sdl(void)
 	 * calling unload_sound_sdl() for every sample that was loaded.
 	 */
 	Mix_CloseAudio();
+#ifdef SOUND_SDL2
+	Mix_Quit();
+#endif
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 
 	return true;

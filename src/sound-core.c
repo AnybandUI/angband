@@ -85,6 +85,7 @@ static struct sound_data *sounds;
 
 /* These are the hooks installed by the platform sound module */
 static struct sound_hooks hooks;
+static bool audio_open;
 
 /*
  * If preload_sounds is true, sounds are loaded immediately when assigned to
@@ -379,6 +380,8 @@ errr init_sound(const char *soundstr, int argc, char **argv)
 	if (!hooks.open_audio_hook())
 		return 1;
 
+	audio_open = true;
+
 	/* Enable sound */
 	event_add_handler(EVENT_SOUND, play_sound, NULL);
 
@@ -392,19 +395,15 @@ errr init_sound(const char *soundstr, int argc, char **argv)
 void close_sound(void)
 {
 	event_remove_handler(EVENT_SOUND, play_sound, NULL);
-	if (0 == next_sound_id) return;	/* Never opened */
 
 	/*
 	 * Ask the platforms sound module to free resources for each
 	 * sound
 	 */
-	if (hooks.unload_sound_hook) {
-		int i;
-
-		for (i = 0; i < next_sound_id; i++) {
+	for (int i = 0; i < next_sound_id; i++) {
+		if (hooks.unload_sound_hook)
 			hooks.unload_sound_hook(&sounds[i]);
-			string_free(sounds[i].name);
-		}
+		string_free(sounds[i].name);
 	}
 
 	mem_free(sounds);
@@ -413,9 +412,10 @@ void close_sound(void)
 	memset(message_sounds, 0, sizeof(message_sounds));
 
 	/* Close the platform's sound module */
-	if (hooks.close_audio_hook) {
+	if (audio_open && hooks.close_audio_hook) {
 		hooks.close_audio_hook();
 	}
+	audio_open = false;
 }
 
 /**
@@ -424,7 +424,7 @@ void close_sound(void)
  */
 bool is_sound_inited(void)
 {
-	return next_sound_id != 0;
+	return audio_open;
 }
 
 /**

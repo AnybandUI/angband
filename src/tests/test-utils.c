@@ -16,18 +16,17 @@
 #include "unit-test.h"
 #include "z-util.h"
 
-#if defined(SOUND_SDL) || defined(SOUND_SDL2)
+#if (defined(SOUND_SDL) || defined(SOUND_SDL2)) && !defined(TEST_REAL_SOUND)
 #include "sound.h"
 #include "snd-sdl.h"
 
+/* Some test builds link only the core, without a sound backend. */
 errr init_sound_sdl(struct sound_hooks *hooks, int argc, char **argv)
 {
 	return (0);
 }
 
 #endif
-
-
 
 /*
  * Call this to initialise Angband's file paths before calling init_angband()
