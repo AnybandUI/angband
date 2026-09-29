@@ -208,7 +208,7 @@ void event_signal_blast(game_event_type type,
 						bool drawing,
 						bool *player_sees_grid,
 						struct loc *blast_grid,
-						struct loc centre)
+						struct loc centre, bool arc)
 {
 	game_event_data data;
 	data.explosion.proj_type = proj_type;
@@ -218,6 +218,7 @@ void event_signal_blast(game_event_type type,
 	data.explosion.player_sees_grid = player_sees_grid;
 	data.explosion.blast_grid = blast_grid;
 	data.explosion.centre = centre;
+	data.explosion.arc = arc;
 
 	game_event_dispatch(type, &data);
 }
@@ -281,4 +282,21 @@ void event_signal_tunnel(game_event_type type, int nstep, int npierce, int ndug,
 	data.tunnel.dend = dend;
 	data.tunnel.early = early;
 	game_event_dispatch(type, &data);
+}
+
+/* Observational only: callers supply the resolved outcome; no RNG or rules. */
+void event_signal_combat(struct loc grid, const char *kind, int amount, bool player, bool visible)
+{
+ game_event_data data;
+ data.combat.grid=grid; data.combat.kind=kind; data.combat.amount=amount;
+ data.combat.player=player; data.combat.visible=visible;
+ game_event_dispatch(EVENT_COMBAT_FEEDBACK,&data);
+}
+
+void event_signal_motion(struct loc from, struct loc to, int index, bool blink, bool visible)
+{
+ game_event_data data;
+ data.motion.from=from; data.motion.to=to; data.motion.index=index;
+ data.motion.blink=blink; data.motion.visible=visible;
+ game_event_dispatch(EVENT_ACTOR_MOTION,&data);
 }

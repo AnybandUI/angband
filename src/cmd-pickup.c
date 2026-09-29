@@ -267,7 +267,7 @@ static void player_pickup_aux(struct player *p, struct object *obj,
 		if (auto_max)
 			num = auto_max;
 		else
-			num = get_quantity(NULL, max);
+			num = get_quantity_for_item(NULL, max, obj);
 		if (!num) return;
 		picked_up = floor_object_for_use(p, obj, num, false, &dummy);
 		inven_carry(p, picked_up, true, domsg);
@@ -474,11 +474,13 @@ void do_cmd_pickup(struct command *cmd)
  */
 void do_cmd_autopickup(struct command *cmd)
 {
+	event_signal(EVENT_AUTOPICKUP_BEGIN);
 	/* Get the obvious things */
 	player->upkeep->energy_use = do_autopickup(player)
 		* z_info->move_energy / 10;
 	if (player->upkeep->energy_use > z_info->move_energy)
 		player->upkeep->energy_use = z_info->move_energy;
+	event_signal(EVENT_AUTOPICKUP_END);
 
 	/* Look at or feel what's left */
 	event_signal(EVENT_SEEFLOOR);

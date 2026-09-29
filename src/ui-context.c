@@ -997,12 +997,18 @@ int context_menu_command(int mx, int my)
  */
 void textui_process_click(ui_event e)
 {
+	textui_process_click_at(e, loc(KEY_GRID_X(e), KEY_GRID_Y(e)));
+}
+
+/* World coordinates also support semantic clients after the camera moves. */
+void textui_process_click_at(ui_event e, struct loc grid)
+{
 	int x, y;
 
 	if (!OPT(player, mouse_movement)) return;
 
-	y = KEY_GRID_Y(e);
-	x = KEY_GRID_X(e);
+	y = grid.y;
+	x = grid.x;
 
 	/* Check for a valid location */
 	if (!square_in_bounds_fully(cave, loc(x, y))) return;
@@ -1048,6 +1054,9 @@ void textui_process_click(ui_event e)
 	} else if (e.mouse.button == 1) {
 		if (player->timed[TMD_CONFUSED]) {
 			cmdq_push(CMD_WALK);
+			/* Supply the intended step; walking applies confusion itself. */
+			cmd_set_arg_direction(cmdq_peek(), "direction",
+					motion_dir(player->grid, loc(x, y)));
 		} else {
 			if (e.mouse.mods & KC_MOD_SHIFT) {
 				/* shift-click - run */

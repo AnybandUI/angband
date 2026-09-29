@@ -44,6 +44,8 @@ extern int (*get_quantity_hook)(const char *prompt, int max);
 extern bool (*get_check_hook)(const char *prompt);
 extern bool (*get_com_hook)(const char *prompt, char *command);
 extern bool (*get_rep_dir_hook)(int *dir, bool allow_none);
+/* Borrowed effect chain, only while a known spell/device requests a target. */
+extern const struct effect *aim_effect;
 extern bool (*get_aim_dir_hook)(int *dir);
 extern int (*get_spell_from_book_hook)(struct player *p, const char *verb,
 	struct object *book, const char *error,
@@ -68,6 +70,9 @@ extern void (*view_abilities_hook)(struct player_ability *ability_list,
 
 bool get_string(const char *prompt, char *buf, size_t len);
 int get_quantity(const char *prompt, int max);
+/* Optional presentation context; does not change quantity rules. */
+extern const struct object *quantity_item;
+int get_quantity_for_item(const char *prompt, int max, const struct object *obj);
 bool get_check(const char *prompt);
 bool get_com(const char *prompt, char *command);
 bool get_rep_dir(int *dir, bool allow_none);

@@ -382,6 +382,8 @@ ui_event inkey_m(void)
 /**
  * Flush
  */
+bool textui_message_pending;
+
 static void msg_flush(int x)
 {
 	uint8_t a = COLOUR_L_BLUE;
@@ -389,8 +391,11 @@ static void msg_flush(int x)
 	/* Pause for response */
 	Term_putstr(x, 0, -1, a, "-more-");
 
-	if ((!OPT(player, auto_more)) && !keymap_auto_more)
+	if ((!OPT(player, auto_more)) && !keymap_auto_more) {
+		textui_message_pending = true;
 		anykey();
+		textui_message_pending = false;
+	}
 
 	/* Clear the line */
 	Term_erase(0, 0, 255);
@@ -1499,7 +1504,7 @@ static int dir_transitions[10][10] =
  *
  * The direction, "0", is illegal and will not be accepted.
  */
-static bool textui_get_rep_dir(int *dp, bool allow_5)
+static bool textui_get_rep_dir_impl(int *dp, bool allow_5)
 {
 	int dir = 0;
 
@@ -1600,6 +1605,16 @@ static bool textui_get_rep_dir(int *dp, bool allow_5)
 	return (true);
 }
 
+bool textui_direction;
+static bool textui_get_rep_dir(int *dp, bool allow_5)
+{
+	bool result;
+	textui_direction = true;
+	result = textui_get_rep_dir_impl(dp, allow_5);
+	textui_direction = false;
+	return result;
+}
+
 /**
  * Get an "aiming direction" (1,2,3,4,6,7,8,9 or 5) from the user.
  *
@@ -1613,6 +1628,16 @@ static bool textui_get_rep_dir(int *dp, bool allow_5)
  * Note that "Force Target", if set, will pre-empt user interaction,
  * if there is a usable target already set.
  */
+bool textui_aiming;
+static bool textui_aim_location;
+static struct loc textui_aim_grid;
+void textui_aim_at(struct loc grid)
+{
+ if (!textui_aiming) return;
+ textui_aim_grid=grid; textui_aim_location=true;
+ Term_keypress('*',0);
+}
+
 static bool textui_get_aim_dir(int *dp)
 {
 	/* Global direction */
@@ -1642,7 +1667,10 @@ static bool textui_get_aim_dir(int *dp)
 			p = "Direction ('5' for target, '*' or <click> to re-target, Escape to cancel)? ";
 
 		/* Get a command (or Cancel) */
-		if (!get_com_ex(p, &ke)) break;
+		textui_aiming = true;
+		bool got_direction = get_com_ex(p, &ke);
+		textui_aiming = false;
+		if (!got_direction) break;
 
 		if (ke.type == EVT_MOUSE) {
 			if (ke.mouse.button == 1) {
@@ -1655,8 +1683,10 @@ static bool textui_get_aim_dir(int *dp)
 			}
 		} else if (ke.type == EVT_KBRD) {
 			if (ke.key.code == '*') {
+				struct loc initial = textui_aim_location ? textui_aim_grid : loc(-1,-1);
+				textui_aim_location = false;
 				/* Set new target, use target if legal */
-				if (target_set_interactive(TARGET_KILL, -1, -1,
+				if (target_set_interactive(TARGET_KILL, initial.x, initial.y,
 						false))
 					dir = 5;
 			} else if (ke.key.code == '\'') {

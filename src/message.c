@@ -367,6 +367,8 @@ const char *message_sound_name(int message)
  */
 void sound(int type)
 {
+	/* Semantic cue, before the legacy frontend playback preference. */
+	event_signal_message(EVENT_SOUND_CUE, type, NULL);
 	/* No sound */
 	if (!OPT(player, use_sound)) return;
 

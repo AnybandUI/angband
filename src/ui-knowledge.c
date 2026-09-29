@@ -3910,10 +3910,15 @@ void do_cmd_messages(void)
 /**
  * Display inventory
  */
+bool (*inventory_browse_hook)(void) = NULL;
+bool (*equipment_browse_hook)(void) = NULL;
+
 void do_cmd_inven(void)
 {
 	struct object *obj = NULL;
 	int ret = 3;
+
+	if (inventory_browse_hook && inventory_browse_hook()) return;
 
 	if (player->upkeep->inven[0] == NULL) {
 		msg("You have nothing in your inventory.");
@@ -3960,6 +3965,8 @@ void do_cmd_equip(void)
 {
 	struct object *obj = NULL;
 	int ret = 3;
+
+	if (equipment_browse_hook && equipment_browse_hook()) return;
 
 	if (!player->upkeep->equip_cnt) {
 		msg("You are not wielding or wearing anything.");

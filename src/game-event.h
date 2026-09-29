@@ -52,6 +52,8 @@ typedef enum game_event_type
 	EVENT_EXPLOSION,
 	EVENT_BOLT,
 	EVENT_MISSILE,
+	EVENT_COMBAT_FEEDBACK,
+	EVENT_ACTOR_MOTION,
 
 	EVENT_INVENTORY,
 	EVENT_EQUIPMENT,
@@ -60,12 +62,16 @@ typedef enum game_event_type
 	EVENT_MONSTERTARGET,
 	EVENT_OBJECTTARGET,
 	EVENT_MESSAGE,
+	EVENT_SOUND_CUE,       /* Unfiltered sound; message.type is MSG_*. */
+	EVENT_TARGET_SELECTED, /* Successful explicit selection, not tracking. */
 	EVENT_SOUND,
 	EVENT_BELL,
 	EVENT_USE_STORE,
 	EVENT_STORECHANGED,	/* Triggered on a successful buy/retrieve or sell/drop */
 
 	EVENT_INPUT_FLUSH,
+	EVENT_AUTOPICKUP_BEGIN,
+	EVENT_AUTOPICKUP_END,
 	EVENT_MESSAGE_FLUSH,
 	EVENT_CHECK_INTERRUPT,
 	EVENT_REFRESH,
@@ -107,6 +113,8 @@ typedef enum game_event_type
 
 typedef union
 {
+ struct { struct loc from, to; int index; bool blink, visible; } motion;
+ struct { struct loc grid; const char *kind; int amount; bool player, visible; } combat;
 	struct loc point;
 
 	const char *string;
@@ -140,6 +148,7 @@ typedef union
 	{
 		int proj_type;
 		int num_grids;
+		bool arc; /* Cone geometry, not an explosion centered at the target. */
 		int *distance_to_grid;
 		bool drawing;
 		bool *player_sees_grid;
@@ -217,6 +226,8 @@ void event_remove_handler_set(game_event_type *type, size_t n_types, game_event_
 void event_signal_birthpoints(const int *points, const int *inc_points,
 	int remaining);
 
+void event_signal_motion(struct loc from, struct loc to, int index, bool blink, bool visible);
+void event_signal_combat(struct loc grid, const char *kind, int amount, bool player, bool visible);
 void event_signal_point(game_event_type, int x, int y);
 void event_signal_string(game_event_type, const char *s);
 void event_signal_message(game_event_type type, int t, const char *s);
@@ -229,7 +240,7 @@ void event_signal_blast(game_event_type type,
 						bool seen,
 						bool *player_sees_grid,
 						struct loc *blast_grid,
-						struct loc centre);
+						struct loc centre, bool arc);
 void event_signal_bolt(game_event_type type,
 					   int proj_type,
 					   bool drawing,

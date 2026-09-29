@@ -1211,6 +1211,7 @@ bool mon_take_nonplayer_hit(int dam, struct monster *t_mon,
 
 	/* Hurt the monster */
 	t_mon->hp -= dam;
+	event_signal_combat(t_mon->grid,"damage",dam,false,monster_is_visible(t_mon));
 
 	/* Dead or damaged monster */
 	if (t_mon->hp < 0) {
@@ -1286,6 +1287,7 @@ bool mon_take_hit(struct monster *mon, struct player *p, int dam, bool *fear,
 
 	/* Hurt it */
 	mon->hp -= dam;
+	event_signal_combat(mon->grid,"damage",dam,false,monster_is_visible(mon));
 	if (mon->hp < 0) {
 		/* Deal with arena monsters */
 		if (p->upkeep->arena_level) {
@@ -1711,4 +1713,26 @@ bool monster_revert_shape(struct monster *mon)
 	}
 
 	return false;
+}
+
+/* Presentation signals are emitted only by explicit movement causes. */
+void monster_walk(struct loc from, struct loc to)
+{
+ struct monster *mon=square_monster(cave,from);
+ bool seen=mon && monster_is_visible(mon) && !monster_is_camouflaged(mon);
+ int index=mon ? mon->midx : 0;
+ monster_swap(from,to);
+ event_signal_motion(from,to,index,false,seen && monster_is_visible(mon) && !player->timed[TMD_IMAGE]);
+}
+/* Arrival callers wait for handle_stuff() so visibility belongs to the new view. */
+void monster_blink_ripple(struct loc grid)
+{
+ struct monster *mon=square_monster(cave,grid);
+ bool seen=mon ? monster_is_visible(mon) && !monster_is_camouflaged(mon) : loc_eq(player->grid,grid);
+ event_signal_motion(grid,grid,mon ? mon->midx : 0,true,seen && !player->timed[TMD_IMAGE]);
+}
+void monster_blink(struct loc from, struct loc to)
+{
+ monster_blink_ripple(from);
+ monster_swap(from,to);
 }

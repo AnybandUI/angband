@@ -26,6 +26,7 @@ int (*get_quantity_hook)(const char *prompt, int max);
 bool (*get_check_hook)(const char *prompt);
 bool (*get_com_hook)(const char *prompt, char *command);
 bool (*get_rep_dir_hook)(int *dir, bool allow_none);
+const struct effect *aim_effect;
 bool (*get_aim_dir_hook)(int *dir);
 int (*get_spell_from_book_hook)(struct player *p, const char *verb,
 	struct object *book, const char *error,
@@ -70,6 +71,17 @@ bool get_string(const char *prompt, char *buf, size_t len)
  * \param max is the maximum value to accept
  * \return the quantity
  */
+const struct object *quantity_item;
+int get_quantity_for_item(const char *prompt, int max, const struct object *obj)
+{
+ const struct object *previous=quantity_item;
+ int result;
+ quantity_item=obj;
+ result=get_quantity(prompt,max);
+ quantity_item=previous;
+ return result;
+}
+
 int get_quantity(const char *prompt, int max)
 {
 	/* Ask the UI for it */

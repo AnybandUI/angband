@@ -17,6 +17,7 @@
  */
 
 #include "angband.h"
+#include "game-event.h"
 #include "cave.h"
 #include "cmd-core.h"
 #include "game-input.h"
@@ -156,6 +157,7 @@ bool target_set_monster(struct monster *mon)
 		target_set = true;
 		target.midx = mon->midx;
 		target.grid = mon->grid;
+		event_signal(EVENT_TARGET_SELECTED);
 		return true;
 	} else if (target_fixed) {
 		/* If a monster has died during a spell, this maintains its grid as
@@ -187,6 +189,7 @@ void target_set_location(int y, int x)
 		target_set = true;
 		target.midx = 0;
 		target.grid = grid;
+		event_signal(EVENT_TARGET_SELECTED);
 		return;
 	}
 
