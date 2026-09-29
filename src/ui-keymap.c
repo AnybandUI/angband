@@ -59,12 +59,12 @@ static struct keymap *keymaps[KEYMAP_MODE_MAX];
  */
 bool keymap_is_user(int mode, struct keypress trigger)
 {
- struct keymap *k;
- for(k=keymaps[mode];k;k=k->next)
-  if(k->key.code==trigger.code && k->key.mods==trigger.mods) return k->user;
- return false;
+	struct keymap *k;
+	for (k = keymaps[mode]; k; k = k->next)
+		if (k->key.code == trigger.code && k->key.mods == trigger.mods)
+			return k->user;
+	return false;
 }
-
 const struct keypress *keymap_find(int keymap, struct keypress kc)
 {
 	struct keymap *k;

@@ -144,6 +144,7 @@ enum grid_light_level
 };
 
 struct grid_data {
+	struct loc grid;
 	uint32_t m_idx;			/* Monster index */
 	uint32_t f_idx;			/* Feature index */
 	struct object_kind *first_kind;	/* The kind of the first item on the grid */

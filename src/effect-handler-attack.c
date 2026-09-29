@@ -224,7 +224,8 @@ bool effect_handler_HEAL_HP(effect_handler_context_t *context)
 	}
 
 	/* Gain hitpoints */
-	event_signal_combat(player->grid,"heal",MIN(num,player->mhp-player->chp),true,true);
+	event_signal_combat(player->grid, "heal", MIN(num, player->mhp - player->chp),
+	                    true, true);
 	player->chp += num;
 
 	/* Enforce maximum */
@@ -274,7 +275,8 @@ bool effect_handler_MON_HEAL_HP(effect_handler_context_t *context)
 	seen = (!player->timed[TMD_BLIND] && monster_is_visible(mon));
 
 	/* Heal some */
-	event_signal_combat(mon->grid,"heal",MIN(amount,mon->maxhp-mon->hp),false,monster_is_visible(mon));
+	event_signal_combat(mon->grid, "heal", MIN(amount, mon->maxhp - mon->hp), false,
+	                    monster_is_visible(mon));
 	mon->hp += amount;
 
 	/* Fully healed */
@@ -335,7 +337,8 @@ bool effect_handler_MON_HEAL_KIN(effect_handler_context_t *context)
 	seen = (!player->timed[TMD_BLIND] && monster_is_visible(mon));
 
 	/* Heal some */
-	event_signal_combat(mon->grid,"heal",MIN(amount,mon->maxhp-mon->hp),false,monster_is_visible(mon));
+	event_signal_combat(mon->grid, "heal", MIN(amount, mon->maxhp - mon->hp), false,
+	                    monster_is_visible(mon));
 	mon->hp = MIN(mon->hp + amount, mon->maxhp);
 
 	if (seen) {

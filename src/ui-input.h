@@ -27,9 +27,6 @@
 /* True only while the normal message line waits for acknowledgement. */
 extern bool textui_message_pending;
 extern bool textui_aiming;
-/* Queue a world-coordinate mouse target for the current aim prompt. */
-extern void textui_aim_at(struct loc grid);
-extern bool textui_direction;
 
 /**
  * Holds a generic command.  If hook is not NULL, that function

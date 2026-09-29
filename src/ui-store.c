@@ -458,21 +458,14 @@ static void store_redraw(struct store_context *ctx)
 	}
 }
 
-void (*store_interact_hook)(struct store *store) = NULL;
-static struct store_context *frontend_store;
+void (*store_interact_hook)(struct store *store, struct menu *menu);
+bool (*store_check_hook)(const char *prompt, int32_t price);
 
 static bool store_get_check(const char *prompt, int32_t price)
 {
 	struct keypress ch;
 
-	if (frontend_store) {
-		/* The frontend may inspect items while publishing this prompt. Keep
-		 * its text separate from the engine's shared format() buffer. */
-		char confirmation[1024];
-		strnfmt(confirmation, sizeof(confirmation), "%s\nPrice: %ld gold",
-			prompt, (long)price);
-		return get_check(confirmation);
-	}
+	if (store_check_hook) return store_check_hook(prompt, price);
 
 	/* Prompt for it */
 	prt(prompt, 0, 0);
@@ -577,7 +570,7 @@ static bool store_sell(struct store_context *ctx)
 		/* Confirm sale */
 		if (!store_get_check(format("%s %s?%s",
 				OPT(player, birth_no_selling) ? "Give" : "Sell", o_name,
-				frontend_store ? "" : " [ESC, any other key to accept]"), price)) {
+				store_interact_hook ? "" : " [ESC, any other key to accept]"), price)) {
 			screen_load();
 			return false;
 		}
@@ -729,7 +722,7 @@ static bool store_purchase(struct store_context *ctx, int item, bool single)
 		response = store_get_check(format("Buy %s?%s %s",
 					o_name,
 					obj_can_use ? "" : " (Can't use!)",
-					frontend_store ? "" : "[ESC, any other key to accept]"), price);
+					store_interact_hook ? "" : "[ESC, any other key to accept]"), price);
 
 		screen_load();
 
@@ -1189,30 +1182,6 @@ static bool store_menu_handle(struct menu *m, const ui_event *event, int oid)
 	return false;
 }
 
-bool textui_store_transaction(struct object *stock, bool purchase)
-{
-	bool processed = false;
-	int i;
-	if (!frontend_store) return false;
-	if (purchase) {
-		for (i = 0; i < frontend_store->store->stock_num; ++i) {
-			if (frontend_store->list[i] == stock) {
-				processed = store_purchase(frontend_store, i, false);
-				break;
-			}
-		}
-	} else processed = store_sell(frontend_store);
-
-	cmdq_pop(CTX_STORE);
-	if (processed) {
-		event_signal(EVENT_INVENTORY);
-		event_signal(EVENT_EQUIPMENT);
-	}
-	notice_stuff(player);
-	handle_stuff(player);
-	return processed;
-}
-
 static region store_menu_region = { 1, 4, -1, -2 };
 static const menu_iter store_menu =
 {
@@ -1334,11 +1303,8 @@ void use_store(game_event_type type, game_event_data *data, void *user)
 		prt_welcome(store->owner);
 
 	/* Shopping */
-	if (store_interact_hook) {
-		frontend_store = &ctx;
-		store_interact_hook(store);
-		frontend_store = NULL;
-	} else menu_select(&ctx.menu, 0, false);
+	if (store_interact_hook) store_interact_hook(store, &ctx.menu);
+	else menu_select(&ctx.menu, 0, false);
 
 	/* Shopping's done */
 	event_remove_handler(EVENT_STORECHANGED, refresh_stock, &ctx);

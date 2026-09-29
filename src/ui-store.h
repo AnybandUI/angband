@@ -22,11 +22,10 @@
 
 
 struct store;
-struct object;
-/* Optional frontend session. Transactions still use the ordinary store UI
- * prerequisites and core commands. Valid only inside store_interact_hook. */
-extern void (*store_interact_hook)(struct store *store);
-bool textui_store_transaction(struct object *stock, bool purchase);
+struct menu;
+/* Optional frontend session; the menu owns the original transaction actions. */
+extern void (*store_interact_hook)(struct store *store, struct menu *menu);
+extern bool (*store_check_hook)(const char *prompt, int32_t price);
 void textui_store_knowledge(int n);
 void enter_store(game_event_type type, game_event_data *data, void *user);
 void use_store(game_event_type type, game_event_data *data, void *user);

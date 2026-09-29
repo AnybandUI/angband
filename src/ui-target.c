@@ -1212,22 +1212,6 @@ static bool pile_has_known(const struct object *obj) {
 }
 
 const struct target_ui_state *target_ui_current;
-static bool target_ui_relocate;
-static bool target_ui_confirm;
-static struct loc target_ui_requested;
-
-bool target_ui_select(struct loc grid, bool confirm)
-{
-	if (!target_ui_current || !square_in_bounds_fully(cave, grid)) return false;
-	target_ui_requested = grid;
-	target_ui_relocate = true;
-	target_ui_confirm = confirm && !(target_ui_current->mode & TARGET_LOOK);
-	/* Wake the description handler; the outer loop consumes this relocation
-	 * before normal Escape handling. No target/action is committed here. */
-	Term_keypress(ESCAPE, 0);
-	return true;
-}
-
 /**
  * Handle "target" and "look". May be called from commands or "get_aim_dir()".
  *
@@ -1374,22 +1358,6 @@ bool target_set_interactive(int mode, int x, int y, bool allow_pathfinding)
 		/* Remove the path */
 		if (path_drawn) load_path(path_n, path_g, path_char, path_attr);
 
-		if (target_ui_relocate) {
-			target_ui_relocate = false;
-			x = target_ui_requested.x; y = target_ui_requested.y;
-			if (target_ui_confirm) {
-				struct monster *mon = square_monster(cave, loc(x,y));
-				target_ui_confirm = false;
-				if (target_able(mon)) target_set_monster(mon);
-				else target_set_location(y,x);
-				done = true;
-				continue;
-			}
-			adjust_panel_help(y, x, help, player, mode, &targets,
-				&show_interesting, &target_index);
-			continue;
-		}
-
 		/* Handle an input event */
 		if (event_is_mouse_m(press, 2, KC_MOD_CONTROL) || event_is_mouse(press, 3)) {
 			/* Set a target and done */
@@ -1441,14 +1409,16 @@ bool target_set_interactive(int mode, int x, int y, bool allow_pathfinding)
 
 			/* If they clicked on an edge of the map, drag the cursor further
 			   to trigger a panel scroll */
-			if (press.mouse.y <= 1) {
-				y--;
-			} else if (press.mouse.y >= Term->hgt - 2) {
-				y++;
-			} else if (press.mouse.x <= COL_MAP) {
-				x--;
-			} else if (press.mouse.x >= Term->wid - 2) {
-				x++;
+			if (!(press.mouse.mods & MOUSE_MOD_GRID)) {
+				if (press.mouse.y <= 1) {
+					y--;
+				} else if (press.mouse.y >= Term->hgt - 2) {
+					y++;
+				} else if (press.mouse.x <= COL_MAP) {
+					x--;
+				} else if (press.mouse.x >= Term->wid - 2) {
+					x++;
+				}
 			}
 
 			/* Restrict cursor to inbounds */

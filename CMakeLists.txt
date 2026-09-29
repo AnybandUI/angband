@@ -5,11 +5,10 @@ string(TOLOWER ${PROJECT_NAME} OUR_EXECUTABLE_NAME)
 # Append the custom modules to the search path.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/modules")
 
+set(ANGBAND_EXTERNAL_FRONTEND "" CACHE PATH
+    "Directory containing frontend.cmake for an externally maintained frontend.")
+
 option(SUPPORT_GCU_FRONTEND "Support for GCU front end." OFF)
-option(SUPPORT_ANYBANDUI_FRONTEND "Build the semantic stdio backend instead of a platform frontend." OFF)
-if(SUPPORT_ANYBANDUI_FRONTEND)
-    include(anybandui/backend-dependencies.cmake)
-endif()
 option(SUPPORT_NCURSES_FRONTEND "Synonym for SUPPORT_GCU_FRONTEND for backwards compatibility." OFF)
 option(SUPPORT_SDL_FRONTEND "Support for SDL front end." OFF)
 option(SUPPORT_SDL2_FRONTEND "Support for SDL2 front end." OFF)
@@ -75,7 +74,7 @@ if((SUPPORT_STATS_FRONTEND) AND (NOT SUPPORT_STATS_BACKEND))
 endif()
 # If none of the graphical front ends will be configured, configure the one for
 # Windows if that's the target plaform or the X11 one for anything else.
-if((NOT SUPPORT_ANYBANDUI_FRONTEND) AND (NOT SUPPORT_GCU_FRONTEND) AND (NOT SUPPORT_SDL_FRONTEND) AND (NOT SUPPORT_SDL2_FRONTEND) AND (NOT SUPPORT_WINDOWS_FRONTEND) AND (NOT SUPPORT_X11_FRONTEND))
+if((NOT ANGBAND_EXTERNAL_FRONTEND) AND (NOT SUPPORT_GCU_FRONTEND) AND (NOT SUPPORT_SDL_FRONTEND) AND (NOT SUPPORT_SDL2_FRONTEND) AND (NOT SUPPORT_WINDOWS_FRONTEND) AND (NOT SUPPORT_X11_FRONTEND))
     if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         set(SUPPORT_WINDOWS_FRONTEND ON)
     else()
@@ -412,7 +411,6 @@ else()
 endif()
 
 add_executable(OurExecutable
-        $<$<BOOL:${SUPPORT_ANYBANDUI_FRONTEND}>:anybandui/backend/main-anybandui.c>
         $<TARGET_OBJECTS:OurCoreLib>
         $<$<BOOL:${SOUND_SUPPORT_LIB}>:$<TARGET_OBJECTS:${SOUND_SUPPORT_LIB}>>
         $<$<BOOL:${SUPPORT_GCU_FRONTEND}>:src/main-gcu.c>
@@ -432,7 +430,7 @@ add_executable(OurExecutable
         $<$<BOOL:${SUPPORT_STATS_FRONTEND}>:src/main-stats.c>
         $<$<BOOL:${SUPPORT_STATS_FRONTEND}>:src/stats/db.c>
         $<$<BOOL:${SUPPORT_TEST_FRONTEND}>:src/main-test.c>
-        $<$<AND:$<NOT:$<BOOL:${SUPPORT_WINDOWS_FRONTEND}>>,$<NOT:$<BOOL:${SUPPORT_ANYBANDUI_FRONTEND}>>>:src/main.c>
+        $<$<AND:$<NOT:$<BOOL:${SUPPORT_WINDOWS_FRONTEND}>>,$<NOT:$<BOOL:${ANGBAND_EXTERNAL_FRONTEND}>>>:src/main.c>
 )
 
 set_target_properties(OurExecutable PROPERTIES
@@ -443,17 +441,16 @@ target_include_directories(OurExecutable PRIVATE
     ${ANGBAND_CORE_INCLUDE_DIRS}
 )
 target_link_libraries(OurExecutable PRIVATE ${ANGBAND_CORE_LINK_LIBRARIES})
-if(SUPPORT_ANYBANDUI_FRONTEND)
-    if(SUPPORT_WINDOWS_FRONTEND OR SUPPORT_SDL_FRONTEND OR SUPPORT_SDL2_FRONTEND OR SUPPORT_X11_FRONTEND OR SUPPORT_GCU_FRONTEND)
-        message(FATAL_ERROR "Configure the AnybandUI backend separately from platform frontends.")
+if(ANGBAND_EXTERNAL_FRONTEND)
+    if(SUPPORT_WINDOWS_FRONTEND OR SUPPORT_GCU_FRONTEND OR SUPPORT_SDL_FRONTEND
+            OR SUPPORT_SDL2_FRONTEND OR SUPPORT_X11_FRONTEND)
+        message(FATAL_ERROR "Build an external frontend separately from platform frontends.")
     endif()
-    target_link_libraries(OurExecutable PRIVATE anybandui_json)
-    set_target_properties(OurExecutable PROPERTIES OUTPUT_NAME angband-anybandui)
-    if(WIN32)
-        target_compile_definitions(OurCoreLib PRIVATE WINDOWS _CRT_SECURE_NO_WARNINGS)
-        target_compile_definitions(OurExecutable PRIVATE WINDOWS _CRT_SECURE_NO_WARNINGS)
-    endif()
+    set(ANGBAND_FRONTEND_TARGET OurExecutable)
+    set(ANGBAND_CORE_TARGET OurCoreLib)
+    include("${ANGBAND_EXTERNAL_FRONTEND}/frontend.cmake")
 endif()
+
 
 # Allow for some introspection:  have rules to print out names that something
 # downstream could use.  Have the output start with "our-<something>=" so it
@@ -1111,12 +1108,3 @@ else()
     add_custom_target(allunittests)
 endif()
 add_dependencies(alltests allunittests)
-
-
-
-if(SUPPORT_ANYBANDUI_FRONTEND)
-    configure_file(anybandui/engine.anyband.json.in ${CMAKE_BINARY_DIR}/game/engine.anyband.json @ONLY)
-    add_custom_command(TARGET OurExecutable POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/lib $<TARGET_FILE_DIR:OurExecutable>/lib
-        COMMENT "Staging AnybandUI engine game data")
-endif()

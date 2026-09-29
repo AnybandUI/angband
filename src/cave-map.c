@@ -79,7 +79,8 @@
  * into different monsters, and terrain may be objects, monsters, or stay the
  * same.
  */
-static void map_info_internal(struct loc grid, struct grid_data *g, bool readonly)
+static void map_info_internal(struct loc grid, struct grid_data *g,
+                              bool readonly)
 {
 	struct object *obj;
 
@@ -87,6 +88,7 @@ static void map_info_internal(struct loc grid, struct grid_data *g, bool readonl
 	assert(grid.y < cave->height);
 
 	/* Default "clear" values, others will be set later where appropriate. */
+	g->grid = grid;
 	g->first_kind = NULL;
 	g->trap = NULL;
 	g->multiple_objects = false;

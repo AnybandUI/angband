@@ -70,7 +70,8 @@ void option_dump(ang_file *fff);
 bool prefs_save(const char *path, void (*dump)(ang_file *), const char *title);
 errr process_pref_file_command(const char *buf);
 bool process_pref_file(const char *name, bool quiet, bool user);
-bool process_tile_pref_file(const char *directory, const char *name);
+/* A caller that skips finish must free parser_priv(p), then parser_destroy(p). */
+struct parser *init_parse_prefs(bool user);
 void reset_visuals(bool load_prefs);
 void textui_prefs_init(void);
 void textui_prefs_free(void);

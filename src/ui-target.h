@@ -34,19 +34,20 @@ struct target_ui_state {
 	int path_length;
 };
 extern const struct target_ui_state *target_ui_current;
-bool target_ui_select(struct loc grid, bool confirm);
 
 /**
  * Convert a "key event" into a "location" (Y)
  */
 #define KEY_GRID_Y(K) \
-  ((int) (((K.mouse.y - ROW_MAP) / tile_height) + Term->offset_y))
+  ((K).mouse.mods & MOUSE_MOD_GRID ? (K).mouse.y : \
+  (int) ((((K).mouse.y - ROW_MAP) / tile_height) + Term->offset_y))
 
 /**
  * Convert a "key event" into a "location" (X)
  */
 #define KEY_GRID_X(K) \
-	((int) (((K.mouse.x - COL_MAP) / tile_width) + Term->offset_x))
+	((K).mouse.mods & MOUSE_MOD_GRID ? (K).mouse.x : \
+	(int) ((((K).mouse.x - COL_MAP) / tile_width) + Term->offset_x))
 
 /**
  * Size of the array that is used for object names during targeting.

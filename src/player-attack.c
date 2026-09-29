@@ -765,7 +765,7 @@ bool py_attack_real(struct player *p, struct loc grid, bool *fear)
 	/* If a miss, skip this hit */
 	if (!success) {
 		msgt(MSG_MISS, "You miss %s.", m_name);
-		event_signal_combat(mon->grid,"miss",0,false,monster_is_visible(mon));
+		event_signal_combat(mon->grid, "miss", 0, false, monster_is_visible(mon));
 
 		/* Small chance of bloodlust side-effects */
 		if (p->timed[TMD_BLOODLUST] && one_in_(50)) {

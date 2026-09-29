@@ -997,18 +997,12 @@ int context_menu_command(int mx, int my)
  */
 void textui_process_click(ui_event e)
 {
-	textui_process_click_at(e, loc(KEY_GRID_X(e), KEY_GRID_Y(e)));
-}
-
-/* World coordinates also support semantic clients after the camera moves. */
-void textui_process_click_at(ui_event e, struct loc grid)
-{
 	int x, y;
 
 	if (!OPT(player, mouse_movement)) return;
 
-	y = grid.y;
-	x = grid.x;
+	y = KEY_GRID_Y(e);
+	x = KEY_GRID_X(e);
 
 	/* Check for a valid location */
 	if (!square_in_bounds_fully(cave, loc(x, y))) return;

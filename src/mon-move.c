@@ -1360,7 +1360,9 @@ static bool monster_turn_try_push(struct monster *mon, const char *m_name,
 		if (kill_ok)
 			delete_monster(cave, new);
 
-		monster_walk(mon->grid, new);
+		event_signal_point(EVENT_MONSTER_MOVE_BEGIN, mon->grid.x, mon->grid.y);
+		monster_swap(mon->grid, new);
+		event_signal_point(EVENT_MONSTER_MOVE_END, new.x, new.y);
 		return true;
 	}
 
@@ -1647,7 +1649,9 @@ static void monster_turn(struct monster *mon)
 			did_something = monster_turn_try_push(mon, m_name, new);
 		} else {
 			/* Otherwise we can just move */
-			monster_walk(mon->grid, new);
+			event_signal_point(EVENT_MONSTER_MOVE_BEGIN, mon->grid.x, mon->grid.y);
+			monster_swap(mon->grid, new);
+			event_signal_point(EVENT_MONSTER_MOVE_END, new.x, new.y);
 			did_something = true;
 		}
 

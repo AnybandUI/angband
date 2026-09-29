@@ -42,11 +42,6 @@
 /**
  * Describes the number of blows possible for given stat bonuses
  */
-struct blow_info {
-	int str_plus;
-	int dex_plus;  
-	int centiblows;
-};
 
 /**
  * ------------------------------------------------------------------------
@@ -861,7 +856,7 @@ static void get_known_elements(const struct object *obj,
  * Note that the results are meaningless if called on a fake ego object as
  * the actual ego may have different properties.
  */
-static int obj_known_blows(const struct object *obj, int max_num,
+int obj_known_blows(const struct object *obj, int max_num,
 						   struct blow_info possible_blows[])
 {
 	int str_plus, dex_plus, old_blows = 0;
@@ -954,7 +949,7 @@ static int obj_known_blows(const struct object *obj, int max_num,
 /**
  * Describe blows.
  */
-static bool describe_blows(textblock *tb, const struct object *obj, object_info_combat_cb combat, void *user)
+static bool describe_blows(textblock *tb, const struct object *obj)
 {
 	int i;
 	struct blow_info blow_info[STAT_RANGE * 2]; /* (Very) theoretical max */
@@ -962,12 +957,6 @@ static bool describe_blows(textblock *tb, const struct object *obj, object_info_
 
 	num_entries = obj_known_blows(obj, STAT_RANGE * 2, blow_info);
 	if (num_entries == 0) return false;
- if(combat) {
-  combat(user,"blows","Blows / round",blow_info[0].centiblows,0,0);
-  for(i=1;i<num_entries;++i)
-   combat(user,"upgrade",blow_info[i].centiblows%10 ? "Slightly faster" : "Blows / round",
-    blow_info[i].centiblows,blow_info[i].str_plus,blow_info[i].dex_plus);
- }
 
 	/* First entry is always current blows (+0, +0) */
 	textblock_append_c(tb, COLOUR_L_GREEN, "%d.%d ",
@@ -1522,7 +1511,7 @@ bool o_obj_known_damage(const struct object *obj, int *normal_damage,
 /**
  * Describe damage.
  */
-static bool describe_damage(textblock *tb, const struct object *obj, bool throw, object_info_combat_cb combat, void *user)
+static bool describe_damage(textblock *tb, const struct object *obj, bool throw)
 {
 	int i;
 	bool nonweap_slay = false;
@@ -1537,16 +1526,6 @@ static bool describe_damage(textblock *tb, const struct object *obj, bool throw,
 		obj_known_damage(obj, &normal_damage, brand_damage, slay_damage,
 						 &nonweap_slay, throw);
 
- if(combat) {
-  combat(user,throw?"throw_damage":"damage","Normal",normal_damage,0,0);
-  for(i=0;i<z_info->brand_max;++i) if(brand_damage[i]>0) {
-   char label[160]; strnfmt(label,sizeof(label),"Not resistant to %s",brands[i].name);
-   combat(user,throw?"throw_variant":"damage_variant",label,brand_damage[i],0,0);
-  }
-  for(i=0;i<z_info->slay_max;++i) if(slay_damage[i]>0)
-   combat(user,throw?"throw_variant":"damage_variant",slays[i].name,slay_damage[i],0,0);
-  if(nonweap_slay) combat(user,"note","This weapon may benefit from off-weapon brands or slays.",0,0,0);
- }
 	/* Mention slays and brands from other items */
 	if (nonweap_slay)
 		textblock_append(tb, "This weapon may benefit from one or more off-weapon brands or slays.\n");
@@ -1715,7 +1694,7 @@ static bool describe_damage(textblock *tb, const struct object *obj, bool throw,
  * the `range` in ft (or zero if not ammo), the percentage chance of breakage
  * and whether it is too heavy to be wielded effectively at the moment.
  */
-static void obj_known_misc_combat(const struct object *obj, bool *thrown_effect,
+void obj_known_misc_combat(const struct object *obj, bool *thrown_effect,
 								  int *range, int *break_chance, bool *heavy)
 {
 	struct object *bow = equipped_item_by_slot_name(player, "shooting");
@@ -1765,7 +1744,7 @@ static void obj_known_misc_combat(const struct object *obj, bool *thrown_effect,
 /**
  * Describe combat advantages.
  */
-static bool describe_combat(textblock *tb, const struct object *obj, object_info_combat_cb combat, void *user)
+static bool describe_combat(textblock *tb, const struct object *obj)
 {
 	struct object *bow = equipped_item_by_slot_name(player, "shooting");
 	bool weapon = tval_is_melee_weapon(obj);
@@ -1781,7 +1760,6 @@ static bool describe_combat(textblock *tb, const struct object *obj, object_info
 	if (!weapon && !ammo && !rock) {
 		if (thrown_effect) {
 			textblock_append(tb, "It can be thrown at creatures with damaging effect.\n");
-   if(combat) combat(user,"note","Can be thrown at creatures with damaging effect.",0,0,0);
 			return true;
 		} else
 			return false;
@@ -1792,14 +1770,7 @@ static bool describe_combat(textblock *tb, const struct object *obj, object_info
 	if (heavy)
 		textblock_append_c(tb, COLOUR_L_RED, "You are too weak to use this weapon.\n");
 
- if(combat) {
-  if(heavy) combat(user,"warning","You are too weak to use this weapon.",0,0,0);
-  if(ammo) {
-   combat(user,"range","Range",range,0,0);
-   combat(user,"break","Break chance",break_chance,0,0);
-  }
- }
- describe_blows(tb, obj, combat, user);
+	describe_blows(tb, obj);
 
 	if (ammo) {
 		textblock_append(tb, "When fired, hits targets up to ");
@@ -1808,10 +1779,10 @@ static bool describe_combat(textblock *tb, const struct object *obj, object_info
 	}
 
 	if (weapon || ammo) {
-		describe_damage(tb, obj, false, combat, user);
+		describe_damage(tb, obj, false);
 	}
 	if (throwing_weapon || rock) {
-		describe_damage(tb, obj, true, combat, user);
+		describe_damage(tb, obj, true);
 	}
 
 	if (ammo) {
@@ -2324,19 +2295,8 @@ static bool describe_ego(textblock *tb, const struct ego_item *ego)
 /**
  * Output object information
  */
-/* Section boundaries are emitted during the same calculation as legacy text. */
-static void info_section(textblock *tb, size_t *start, const char *id,
- const char *title, object_info_section_cb emit, void *user)
-{
- const wchar_t *text;
- size_t end;
- if (!emit) return;
- text = textblock_text(tb); end = wcslen(text);
- if (end > *start) emit(user, id, title, text + *start, end - *start);
- *start = end;
-}
-
-static textblock *object_info_out_sections(const struct object *obj, int mode, object_info_section_cb emit, object_info_combat_cb combat, void *user)
+textblock *object_info_sections(const struct object *obj, int mode,
+	void (*emit)(textblock *, const char *, void *), void *user)
 {
 	bitflag flags[OF_SIZE];
 	struct element_info el_info[ELEM_MAX];
@@ -2346,14 +2306,13 @@ static textblock *object_info_out_sections(const struct object *obj, int mode, o
 	bool subjective = mode & OINFO_SUBJ ? true : false;
 	bool ego = mode & OINFO_EGO ? true : false;
 	textblock *tb = textblock_new();
- size_t section_start = 0;
 
 	assert(obj->known);
 
 	/* Unaware objects get simple descriptions */
 	if (obj->kind != obj->known->kind) {
 		textblock_append(tb, "\n\nYou do not know what this is.\n");
-		info_section(tb,&section_start,"knowledge","Identification",emit,user);
+		if (emit) emit(tb, "knowledge", user);
 		return tb;
 	}
 
@@ -2371,19 +2330,19 @@ static textblock *object_info_out_sections(const struct object *obj, int mode, o
 		something = true;
 	}
 
- info_section(tb,&section_start,"lore","Origin & lore",emit,user);
+	if (emit) emit(tb, "lore", user);
 	if (describe_curses(tb, obj, flags)) something = true;
- info_section(tb,&section_start,"curses","Curses",emit,user);
+	if (emit) emit(tb, "curses", user);
 	if (describe_stats(tb, obj, mode)) something = true;
 	if (describe_slays(tb, obj)) something = true;
 	if (describe_brands(tb, obj)) something = true;
- info_section(tb,&section_start,"bonuses","Bonuses & damage",emit,user);
+	if (emit) emit(tb, "bonuses", user);
 	if (describe_elements(tb, el_info)) something = true;
 	if (describe_protects(tb, flags)) something = true;
- info_section(tb,&section_start,"resistances","Resistances & protection",emit,user);
+	if (emit) emit(tb, "resistances", user);
 	if (describe_ignores(tb, el_info)) something = true;
 	if (describe_hates(tb, el_info)) something = true;
- info_section(tb,&section_start,"durability","Durability",emit,user);
+	if (emit) emit(tb, "durability", user);
 	if (describe_sustains(tb, flags)) something = true;
 	if (describe_misc_magic(tb, flags)) something = true;
 	if (describe_light(tb, obj, mode)) something = true;
@@ -2391,7 +2350,7 @@ static textblock *object_info_out_sections(const struct object *obj, int mode, o
 	if (ego && describe_ego(tb, obj->ego)) something = true;
 	if (something) textblock_append(tb, "\n");
 
- info_section(tb,&section_start,"abilities","Abilities",emit,user);
+	if (emit) emit(tb, "abilities", user);
 	/* Skip all the very specific information where we are giving general
 	   ego knowledge rather than for a single item - abilities can vary */
 	if (!ego) {
@@ -2400,34 +2359,29 @@ static textblock *object_info_out_sections(const struct object *obj, int mode, o
 			textblock_append(tb, "\n");
 		}
 
- info_section(tb,&section_start,"use","Use & activation",emit,user);
-		if (subjective && describe_combat(tb, obj, combat, user)) {
+		if (emit) emit(tb, "use", user);
+		if (subjective && describe_combat(tb, obj)) {
 			something = true;
 			textblock_append(tb, "\n");
 		}
 
- info_section(tb,&section_start,"combat","Combat",emit,user);
+		if (emit) emit(tb, "combat", user);
 		if (!terse && subjective && describe_digger(tb, obj)) something = true;
 	}
 
- info_section(tb,&section_start,"digging","Digging",emit,user);
+	if (emit) emit(tb, "digging", user);
 	/* Don't append anything in terse (for chararacter dump) */
 	if (!something && !terse)
 		textblock_append(tb, "\n\nThis item does not seem to possess any special abilities.");
 
- info_section(tb,&section_start,"notes","Notes",emit,user);
+	if (emit) emit(tb, "notes", user);
 	return tb;
 }
 
+
 static textblock *object_info_out(const struct object *obj, int mode)
 {
- return object_info_out_sections(obj,mode,NULL,NULL,NULL);
-}
-
-textblock *object_info_sections(const struct object *obj, oinfo_detail_t mode,
- object_info_section_cb emit, object_info_combat_cb combat, void *user)
-{
- return object_info_out_sections(obj,mode | OINFO_SUBJ,emit,combat,user);
+	return object_info_sections(obj, mode, NULL, NULL);
 }
 
 

@@ -208,10 +208,13 @@ static struct keypress const KEYPRESS_NULL = {
 /**
  * Struct holding all relevant info for mouse clicks.
  */
+/* Mouse-only modifier: coordinates are dungeon grids, not terminal cells. */
+#define MOUSE_MOD_GRID 0x80
+
 struct mouseclick {
 	ui_event_type type;
-	uint8_t x;
-	uint8_t y;
+	int16_t x;
+	int16_t y;
 	uint8_t button;
 	uint8_t mods;
 };

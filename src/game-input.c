@@ -74,14 +74,13 @@ bool get_string(const char *prompt, char *buf, size_t len)
 const struct object *quantity_item;
 int get_quantity_for_item(const char *prompt, int max, const struct object *obj)
 {
- const struct object *previous=quantity_item;
- int result;
- quantity_item=obj;
- result=get_quantity(prompt,max);
- quantity_item=previous;
- return result;
+	const struct object *previous = quantity_item;
+	int result;
+	quantity_item = obj;
+	result = get_quantity(prompt, max);
+	quantity_item = previous;
+	return result;
 }
-
 int get_quantity(const char *prompt, int max)
 {
 	/* Ask the UI for it */

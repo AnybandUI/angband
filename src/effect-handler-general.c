@@ -2662,7 +2662,8 @@ bool effect_handler_TELEPORT(effect_handler_context_t *context)
 	sound(is_player ? MSG_TELEPORT : MSG_TPOTHER);
 
 	/* Move player or monster */
-	monster_blink(start, spots->grid);
+	event_signal_point(EVENT_TELEPORT, start.x, start.y);
+	monster_swap(start, spots->grid);
 	if (is_player) {
 		player_handle_post_move(player, true,
 			context->origin.what == SRC_MONSTER);
@@ -2678,7 +2679,8 @@ bool effect_handler_TELEPORT(effect_handler_context_t *context)
 
 	/* Lots of updates after monster_swap */
 	handle_stuff(player);
-	if (!loc_eq(start, spots->grid)) monster_blink_ripple(spots->grid);
+	if (!loc_eq(start, spots->grid))
+		event_signal_point(EVENT_TELEPORT, spots->grid.x, spots->grid.y);
 
 	while (spots) {
 		struct jumps *next = spots->next;
@@ -2805,7 +2807,8 @@ bool effect_handler_TELEPORT_TO(effect_handler_context_t *context)
 	sound(MSG_TELEPORT);
 
 	/* Move player or monster */
-	monster_blink(start, land);
+	event_signal_point(EVENT_TELEPORT, start.x, start.y);
+	monster_swap(start, land);
 	if (player_moves) {
 		player_handle_post_move(player, true,
 			context->origin.what == SRC_MONSTER);
@@ -2821,7 +2824,8 @@ bool effect_handler_TELEPORT_TO(effect_handler_context_t *context)
 
 	/* Lots of updates after monster_swap */
 	handle_stuff(player);
-	if (!loc_eq(start, land)) monster_blink_ripple(land);
+	if (!loc_eq(start, land))
+		event_signal_point(EVENT_TELEPORT, land.x, land.y);
 
 	return true;
 }

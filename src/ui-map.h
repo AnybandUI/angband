@@ -24,16 +24,16 @@ extern void prt_map(void);
 extern void display_map(int *cy, int *cx);
 extern void do_cmd_view_map(void);
 
-/* Optional presentation observer. Called only by an existing map draw; never
- * performs a second map query or exposes engine pointers to a client. */
-struct map_visual {
- int terrain_attr, trap_attr, object_attr, actor_attr;
- wchar_t terrain_char, trap_char, object_char, actor_char;
- int feature, lighting;
- bool seen, hallucinated, player;
+/* Ordered drawing layers, before occlusion by objects and actors. */
+enum map_layer { MAP_TERRAIN, MAP_TRAP, MAP_OBJECT, MAP_ACTOR, MAP_LAYER_MAX };
+struct grid_layer {
+	int attr;
+	wchar_t chr;
 };
-extern void (*map_visual_hook)(struct loc grid, const struct map_visual *visual);
-extern void (*map_visual_reset_hook)(void);
-extern void map_visual_readonly(struct loc grid, struct map_visual *visual);
-extern void map_info_as_text(struct loc grid, struct grid_data *g, int *a,
- wchar_t *c, int *ta, wchar_t *tc);
+extern void (*map_draw_hook)(const struct grid_data *, const struct grid_layer *);
+extern void (*map_reset_hook)(void);
+
+/* A nonzero seed renders without changing gameplay RNG or monster colours.
+ * The caller must zero the layer array before use; absent layers stay zero. */
+extern void grid_data_as_text_layers(struct grid_data *g, int *a, wchar_t *c,
+    int *ta, wchar_t *tc, struct grid_layer layers[MAP_LAYER_MAX], unsigned seed);

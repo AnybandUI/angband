@@ -15,6 +15,8 @@ struct test_message_event_state {
 	char *lastbell;
 	int lastmsg_type;
 	int lastsound_type;
+	int lastcue_type;
+	int n_cue;
 	int n_msg;
 	int n_sound;
 	int n_bell;
@@ -412,6 +414,7 @@ static int test_sound(void *state) {
 	eq(st->n_sound, 0);
 	eq(st->n_bell, 0);
 	eq(st->n_other, 0);
+	eq(st->n_cue, 1);
 
 	player->opts.opt[OPT_use_sound] = true;
 	sound(MSG_MISS);
@@ -419,6 +422,8 @@ static int test_sound(void *state) {
 	eq(st->n_sound, 1);
 	eq(st->n_bell, 0);
 	eq(st->n_other, 0);
+	eq(st->n_cue, 2);
+	eq(st->lastcue_type, st->lastsound_type);
 
 	ok;
 }
@@ -478,6 +483,7 @@ static int test_msgt(void *state)
 	eq(st->n_sound, 0);
 	eq(st->n_bell, 0);
 	eq(st->n_other, 0);
+	eq(st->n_cue, 1);
 
 	player->opts.opt[OPT_use_sound] = true;
 	msgt(MSG_WALK, "%s", expected2);
@@ -496,6 +502,8 @@ static int test_msgt(void *state)
 	eq(st->n_sound, 1);
 	eq(st->n_bell, 0);
 	eq(st->n_other, 0);
+	eq(st->n_cue, 2);
+	eq(st->lastcue_type, st->lastsound_type);
 
 	ok;
 }
@@ -605,6 +613,11 @@ static void message_test_event_handler(game_event_type type,
 		}
 		break;
 
+	case EVENT_SOUND_CUE:
+		++st->n_cue;
+		st->lastcue_type = data->message.type;
+		break;
+
 	case EVENT_SOUND:
 		++st->n_sound;
 		st->lastsound_type = data->message.type;
@@ -637,6 +650,8 @@ static void reset_event_counters(struct test_message_event_state *st)
 	st->lastbell = NULL;
 	st->lastmsg_type = -1;
 	st->lastsound_type = -1;
+	st->lastcue_type = -1;
+	st->n_cue = 0;
 	st->n_msg = 0;
 	st->n_sound = 0;
 	st->n_bell = 0;

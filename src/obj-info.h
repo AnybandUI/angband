@@ -35,12 +35,20 @@ typedef enum {
 } oinfo_detail_t;
 
 
-typedef void (*object_info_section_cb)(void *user, const char *id, const char *title,
- const wchar_t *text, size_t length);
-typedef void (*object_info_combat_cb)(void *user, const char *kind,
- const char *label, int value, int str_plus, int dex_plus);
-textblock *object_info_sections(const struct object *obj, oinfo_detail_t mode,
- object_info_section_cb emit, object_info_combat_cb combat, void *user);
+/* Existing knowledge-limited calculations, shared with alternate views. */
+struct blow_info {
+	int str_plus;
+	int dex_plus;
+	int centiblows;
+};
+int obj_known_blows(const struct object *obj, int max_num,
+	struct blow_info possible_blows[]);
+void obj_known_misc_combat(const struct object *obj, bool *thrown_effect,
+	int *range, int *break_chance, bool *heavy);
+/* The callback observes section ends in the ordinary description. */
+textblock *object_info_sections(const struct object *obj, int mode,
+	void (*emit)(textblock *, const char *, void *), void *user);
+
 textblock *object_info(const struct object *obj, oinfo_detail_t mode);
 textblock *object_info_ego(struct ego_item *ego);
 void object_info_spoil(ang_file *f, const struct object *obj, int wrap);

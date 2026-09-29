@@ -396,7 +396,7 @@ int cmd_get_direction(struct command *cmd, const char *arg, int *dir,
 					  bool allow_5);
 struct effect;
 int cmd_get_effect_target(struct command *cmd, const char *arg, int *target,
-	const struct effect *effect);
+                          const struct effect *effect);
 int cmd_get_target(struct command *cmd, const char *arg, int *target);
 int cmd_get_item(struct command *cmd, const char *arg, struct object **obj,
 				 const char *prompt, const char *reject, item_tester filter,

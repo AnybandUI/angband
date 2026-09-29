@@ -172,7 +172,10 @@ static void grid_get_attr(struct grid_data *g, int *a)
  * This will probably be done outside of the current text->graphics mappings
  * though.
  */
-static void grid_data_as_text_layers(struct grid_data *g, int *ap, wchar_t *cp, int *tap, wchar_t *tcp, struct map_visual *visual, unsigned presentation_seed)
+void grid_data_as_text_layers(struct grid_data *g, int *ap, wchar_t *cp,
+	int *tap, wchar_t *tcp,
+	struct grid_layer layers[MAP_LAYER_MAX],
+	unsigned presentation_seed)
 {
 	struct feature *feat = &f_info[g->f_idx];
 
@@ -194,7 +197,10 @@ static void grid_data_as_text_layers(struct grid_data *g, int *ap, wchar_t *cp, 
 	    skip_objects = get_trap_graphics(cave, g, &a, &c);
 	}
 
-	if (visual && g->trap && !g->hallucinate) { visual->trap_attr=a; visual->trap_char=c; }
+	if (layers && g->trap && !g->hallucinate) {
+		layers[MAP_TRAP].attr = a;
+		layers[MAP_TRAP].chr = c;
+	}
 
 	if (!skip_objects) {
 		/* If there's an object, deal with that. */
@@ -213,8 +219,10 @@ static void grid_data_as_text_layers(struct grid_data *g, int *ap, wchar_t *cp, 
 		} else if (g->first_kind) {
 			if (g->hallucinate) {
 				/* Just pick a random object to display. */
-				if (presentation_seed) { a = 1 + presentation_seed % 15; c = L"!?=/|)["[presentation_seed % 7]; }
-				else hallucinatory_object(&a, &c);
+				if (presentation_seed) {
+					a = 1 + presentation_seed % 15;
+					c = L"!?=/|)["[presentation_seed % 7];
+				} else hallucinatory_object(&a, &c);
 			} else if (g->multiple_objects) {
 				/* Get the "pile" feature instead */
 				a = object_kind_attr(pile_kind);
@@ -227,14 +235,20 @@ static void grid_data_as_text_layers(struct grid_data *g, int *ap, wchar_t *cp, 
 		}
 	}
 
-	if (visual && !skip_objects && (g->first_kind || g->unseen_money || g->unseen_object)) { visual->object_attr=a; visual->object_char=c; }
+	if (layers && !skip_objects &&
+			(g->first_kind || g->unseen_money || g->unseen_object)) {
+		layers[MAP_OBJECT].attr = a;
+		layers[MAP_OBJECT].chr = c;
+	}
 
 	/* Handle monsters, the player and trap borders */
 	if (g->m_idx > 0) {
 		if (g->hallucinate) {
 			/* Just pick a random monster to display. */
-			if (presentation_seed) { a = 1 + presentation_seed % 15; c = L'a' + presentation_seed % 26; }
-			else hallucinatory_monster(&a, &c);
+			if (presentation_seed) {
+				a = 1 + presentation_seed % 15;
+				c = L'a' + presentation_seed % 26;
+			} else hallucinatory_monster(&a, &c);
 		} else if (!monster_is_camouflaged(cave_monster(cave, g->m_idx)))	{
 			struct monster *mon = cave_monster(cave, g->m_idx);
 
@@ -335,43 +349,30 @@ static void grid_data_as_text_layers(struct grid_data *g, int *ap, wchar_t *cp, 
 		c = monster_x_char[race->ridx];
 	}
 
-	if (visual) {
-        visual->terrain_attr=*tap; visual->terrain_char=*tcp;
-        visual->feature=g->f_idx; visual->lighting=g->lighting;
-        visual->seen=g->in_view; visual->hallucinated=g->hallucinate; visual->player=g->is_player;
-        if (g->is_player || (g->m_idx && (g->hallucinate || !monster_is_camouflaged(cave_monster(cave,g->m_idx))))) {
-            visual->actor_attr=a; visual->actor_char=c;
-        }
-    }
+	if (layers) {
+		layers[MAP_TERRAIN].attr = *tap;
+		layers[MAP_TERRAIN].chr = *tcp;
+		if (g->is_player || (g->m_idx && (g->hallucinate ||
+				!monster_is_camouflaged(cave_monster(cave, g->m_idx))))) {
+			layers[MAP_ACTOR].attr = a;
+			layers[MAP_ACTOR].chr = c;
+		}
+	}
 	/* Result */
 	(*ap) = a;
 	(*cp) = c;
 }
 
 
-void (*map_visual_hook)(struct loc, const struct map_visual *);
-void (*map_visual_reset_hook)(void);
-void grid_data_as_text(struct grid_data *g, int *a, wchar_t *c, int *ta, wchar_t *tc)
+void (*map_draw_hook)(const struct grid_data *, const struct grid_layer *);
+void (*map_reset_hook)(void);
+void grid_data_as_text(struct grid_data *g, int *a, wchar_t *c, int *ta,
+                       wchar_t *tc)
 {
- grid_data_as_text_layers(g,a,c,ta,tc,NULL,0);
-}
-void map_info_as_text(struct loc grid, struct grid_data *g, int *a, wchar_t *c, int *ta, wchar_t *tc)
-{
- struct map_visual visual = {0};
- map_info(grid,g);
- grid_data_as_text_layers(g,a,c,ta,tc,map_visual_hook?&visual:NULL,0);
- if(map_visual_hook) map_visual_hook(grid,&visual);
-}
-
-void map_visual_readonly(struct loc grid, struct map_visual *visual)
-{
- struct grid_data g;
- int a, ta; wchar_t c, tc;
- /* Stable visual noise, deliberately independent of the engine RNG. */
- unsigned seed = ((unsigned)grid.x * 73856093u ^ (unsigned)grid.y * 19349663u) | 1u;
- memset(visual, 0, sizeof(*visual));
- map_info_readonly(grid, &g);
- grid_data_as_text_layers(&g, &a, &c, &ta, &tc, visual, seed);
+	struct grid_layer layers[MAP_LAYER_MAX] = {{0}};
+	grid_data_as_text_layers(g, a, c, ta, tc, map_draw_hook ? layers : NULL, 0);
+	if (map_draw_hook)
+		map_draw_hook(g, layers);
 }
 
 /**
@@ -708,7 +709,8 @@ static void prt_map_aux(void)
 				}
 
 				/* Determine what is there */
-				map_info_as_text(loc(x, y), &g, &a, &c, &ta, &tc);
+				map_info(loc(x, y), &g);
+				grid_data_as_text(&g, &a, &c, &ta, &tc);
 				Term_queue_char(t, vx, vy, a, c, ta, tc);
 
 				if ((tile_width > 1) || (tile_height > 1))
@@ -768,7 +770,8 @@ void prt_map(void)
 			if (!square_in_bounds(cave, loc(x, y))) continue;
 
 			/* Determine what is there */
-			map_info_as_text(loc(x, y), &g, &a, &c, &ta, &tc);
+			map_info(loc(x, y), &g);
+			grid_data_as_text(&g, &a, &c, &ta, &tc);
 
 			/* Queue it */
 			Term_queue_char(Term, vx, vy, a, c, ta, tc);
@@ -857,7 +860,8 @@ void display_map(int *cy, int *cx)
 			if (tile_width > 1) col = col - (col % tile_width);
 
 			/* Get the attr/char at that map location */
-			map_info_as_text(loc(x, y), &g, &a, &c, &ta, &tc);
+			map_info(loc(x, y), &g);
+			grid_data_as_text(&g, &a, &c, &ta, &tc);
 
 			/* Get the priority of that attr/char */
 			tp = f_info[g.f_idx].priority;
@@ -869,7 +873,7 @@ void display_map(int *cy, int *cx)
 			if (mp[row][col] < tp) {
 				/* Hack - make every grid on the map lit */
 				g.lighting = LIGHTING_LIT;
-				grid_data_as_text(&g, &a, &c, &ta, &tc);
+				grid_data_as_text_layers(&g, &a, &c, &ta, &tc, NULL, 0);
 
 				Term_queue_char(Term, col + 1, row + 1, a, c, ta, tc);
 
@@ -898,7 +902,7 @@ void display_map(int *cy, int *cx)
 	/* Get the terrain at the player's spot. */
 	map_info(player->grid, &g);
 	g.lighting = LIGHTING_LIT;
-	grid_data_as_text(&g, &a, &c, &ta, &tc);
+	grid_data_as_text_layers(&g, &a, &c, &ta, &tc, NULL, 0);
 
 	/* Get the "player" tile */
 	a = monster_x_attr[race->ridx];
