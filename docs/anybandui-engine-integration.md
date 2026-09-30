@@ -2,7 +2,8 @@
 
 The AnybandUI protocol adapter is maintained in the sibling
 `AnybandUI-AngbandAdapter` project. This checkout contains Angband plus the
-adapter's reviewed engine patch series, based on upstream 4.2-release commit
+engine integration changes maintained directly on `4.2.6-anybandui`, based on
+upstream 4.2-release commit
 `f3082213b73f3e463e3d0d60bff4b00462beae6e`.
 
 The embedded backend has been retired. JSON, manifests, presentation policy and
@@ -30,7 +31,6 @@ existing calculations and observations of combat, movement and lifecycle events.
 The adapter assembles protocol records and native interactions from those
 interfaces. The integration is source-version-specific, not a stable binary ABI.
 
-The authoritative patches and validation history live in the adapter's
-`patches/` and `docs/` directories. The patch series also retains independent
-correctness fixes and sound-event tests. See the adapter README for installation,
+Engine changes, correctness fixes and sound-event tests live in this branch.
+The adapter's `upstream.json` pins the engine commit used for releases. See the adapter README for installation,
 test coverage and outstanding automated-test limitations.
